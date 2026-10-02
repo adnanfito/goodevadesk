@@ -1,0 +1,12 @@
+node_modules
+dist
+coverage
+.models
+src/generated
+.env
+.env.*
+!.env.example
+.git
+.vscode
+.idea
+*.log

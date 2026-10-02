@@ -1,0 +1,69 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "cjs"
+  // Explicit so generation does not depend on tsconfig being present
+  // (it is not yet copied when `pnpm install` runs in the Docker build).
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TicketStatus {
+  open
+  in_progress
+  closed
+}
+
+enum TicketCategory {
+  billing
+  technical
+  general
+}
+
+enum AiStatus {
+  pending
+  completed
+  failed
+}
+
+enum AiSource {
+  llm
+  cache_exact
+  cache_semantic
+}
+
+model Organization {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  /// SHA-256 hex digest of the API key; the plaintext key is never stored.
+  apiKey    String   @unique @map("api_key")
+  createdAt DateTime @default(now()) @map("created_at")
+  tickets   Ticket[]
+
+  @@map("organizations")
+}
+
+model Ticket {
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String          @map("organization_id") @db.Uuid
+  customerEmail  String          @map("customer_email")
+  subject        String
+  message        String          @db.Text
+  category       TicketCategory?
+  suggestedReply String?         @map("suggested_reply") @db.Text
+  status         TicketStatus    @default(open)
+  aiStatus       AiStatus        @default(pending) @map("ai_status")
+  aiSource       AiSource?       @map("ai_source")
+  aiError        String?         @map("ai_error")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, status])
+  @@index([organizationId, category])
+  @@map("tickets")
+}

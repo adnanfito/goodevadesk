@@ -1,0 +1,57 @@
+name: goodevadesk
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: goodeva
+      POSTGRES_PASSWORD: goodeva
+      POSTGRES_DB: goodevadesk
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U goodeva -d goodevadesk']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    # Redis 8 ships the Query Engine (vector search) built in.
+    image: redis:8
+    # noeviction is required by BullMQ; AOF keeps queue + cache across restarts.
+    command: ['redis-server', '--maxmemory-policy', 'noeviction', '--appendonly', 'yes']
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      args:
+        EMBEDDING_MODEL: ${EMBEDDING_MODEL:-Xenova/paraphrase-multilingual-MiniLM-L12-v2}
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://goodeva:goodeva@postgres:5432/goodevadesk?schema=public
+      REDIS_URL: redis://redis:6379
+      EMBEDDING_CACHE_DIR: /app/.models
+      RUN_SEED: 'true'
+    ports:
+      - '${API_PORT:-3000}:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

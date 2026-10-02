@@ -1,0 +1,14 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "<rootDir>/onnx-environment.js",
+  "testRegex": ".e2e-spec.ts$",
+  "testTimeout": 60000,
+  "setupFiles": ["<rootDir>/setup-env.ts"],
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "^(\\.{1,2}/.*)\\.js$": "$1"
+  }
+}
